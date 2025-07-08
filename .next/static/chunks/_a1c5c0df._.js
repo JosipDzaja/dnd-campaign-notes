@@ -26,13 +26,17 @@ if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelper
 
 var { g: global, __dirname, k: __turbopack_refresh__, m: module } = __turbopack_context__;
 {
+// lib/notes.ts - Complete notes operations with image support
 __turbopack_context__.s({
     "addNoteReference": (()=>addNoteReference),
     "createNote": (()=>createNote),
     "deleteNote": (()=>deleteNote),
     "getNote": (()=>getNote),
+    "getNoteWithAll": (()=>getNoteWithAll),
+    "getNoteWithImages": (()=>getNoteWithImages),
     "getNotes": (()=>getNotes),
     "getNotesForReference": (()=>getNotesForReference),
+    "getNotesWithImageCounts": (()=>getNotesWithImageCounts),
     "removeNoteReference": (()=>removeNoteReference),
     "updateNote": (()=>updateNote)
 });
@@ -75,6 +79,80 @@ const getNotes = async ()=>{
         throw error;
     }
     return data || [];
+};
+const getNotesWithImageCounts = async ()=>{
+    const { data, error } = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$supabase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["supabase"].from('notes').select(`
+      *,
+      image_count:note_images(count)
+    `).order('updated_at', {
+        ascending: false
+    });
+    if (error) {
+        console.error('Get notes with images error:', error);
+        throw error;
+    }
+    // Transform the data to include image count as a number
+    const notesWithCounts = data?.map((note)=>({
+            ...note,
+            image_count: note.image_count?.[0]?.count || 0
+        })) || [];
+    return notesWithCounts;
+};
+const getNoteWithAll = async (id)=>{
+    const { data, error } = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$supabase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["supabase"].from('notes').select(`
+      *,
+      references_from:note_references!source_note_id (
+        target_note_id,
+        target_note:notes!target_note_id (
+          id,
+          title,
+          note_type
+        )
+      ),
+      references_to:note_references!target_note_id (
+        source_note_id,
+        source_note:notes!source_note_id (
+          id,
+          title,
+          note_type
+        )
+      ),
+      images:note_images (
+        id,
+        image_url,
+        image_name,
+        image_size,
+        image_type,
+        display_order,
+        created_at,
+        uploaded_by
+      )
+    `).eq('id', id).single();
+    if (error) {
+        console.error('Get note with all data error:', error);
+        throw error;
+    }
+    return data;
+};
+const getNoteWithImages = async (id)=>{
+    const { data, error } = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$supabase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["supabase"].from('notes').select(`
+      *,
+      images:note_images (
+        id,
+        image_url,
+        image_name,
+        image_size,
+        image_type,
+        display_order,
+        created_at,
+        uploaded_by
+      )
+    `).eq('id', id).single();
+    if (error) {
+        console.error('Get note with images error:', error);
+        throw error;
+    }
+    return data;
 };
 const getNote = async (id)=>{
     const { data, error } = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$supabase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["supabase"].from('notes').select(`

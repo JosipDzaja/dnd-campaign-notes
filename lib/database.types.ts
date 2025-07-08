@@ -1,3 +1,5 @@
+// lib/database.types.ts - Enhanced with better image support
+
 export interface Note {
   id: string
   title: string
@@ -30,10 +32,13 @@ export interface NoteImage {
   image_url: string
   image_name: string
   image_size: number | null
+  image_type: string | null
+  display_order: number
   created_at: string
+  uploaded_by: string | null
 }
 
-// Extended types for queries with references
+// Extended types for queries with references and images
 export interface NoteWithReferences extends Note {
   references_from?: {
     target_note_id: string
@@ -51,4 +56,42 @@ export interface NoteWithReferences extends Note {
       note_type: Note['note_type']
     }
   }[]
+}
+
+export interface NoteWithImages extends Note {
+  images?: NoteImage[]
+}
+
+export interface NoteWithAll extends Note {
+  references_from?: {
+    target_note_id: string
+    target_note: {
+      id: string
+      title: string
+      note_type: Note['note_type']
+    }
+  }[]
+  references_to?: {
+    source_note_id: string
+    source_note: {
+      id: string
+      title: string
+      note_type: Note['note_type']
+    }
+  }[]
+  images?: NoteImage[]
+}
+
+// Utility types for file handling
+export interface ImageUploadResult {
+  success: boolean
+  imageId?: string
+  imageUrl?: string
+  error?: string
+}
+
+export interface ImageUploadProgress {
+  loaded: number
+  total: number
+  percentage: number
 }

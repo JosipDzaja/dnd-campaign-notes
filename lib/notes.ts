@@ -1,5 +1,7 @@
+// lib/notes.ts - Complete notes operations with image support
+
 import { supabase } from './supabase'
-import { Note } from './database.types'
+import { Note, NoteWithImages, NoteWithAll } from './database.types'
 
 export const createNote = async (noteData: {
   title: string
@@ -47,7 +49,7 @@ export const createNote = async (noteData: {
   return note
 }
 
-export const getNotes = async () => {
+export const getNotes = async (): Promise<Note[]> => {
   const { data, error } = await supabase
     .from('notes')
     .select('*')
@@ -60,6 +62,103 @@ export const getNotes = async () => {
   return data || []
 }
 
+// Get notes with image counts for list view
+export const getNotesWithImageCounts = async () => {
+  const { data, error } = await supabase
+    .from('notes')
+    .select(`
+      *,
+      image_count:note_images(count)
+    `)
+    .order('updated_at', { ascending: false })
+
+  if (error) {
+    console.error('Get notes with images error:', error)
+    throw error
+  }
+  
+  // Transform the data to include image count as a number
+  const notesWithCounts = data?.map(note => ({
+    ...note,
+    image_count: note.image_count?.[0]?.count || 0
+  })) || []
+  
+  return notesWithCounts
+}
+
+// Get single note with all related data (references + images)
+export const getNoteWithAll = async (id: string): Promise<NoteWithAll | null> => {
+  const { data, error } = await supabase
+    .from('notes')
+    .select(`
+      *,
+      references_from:note_references!source_note_id (
+        target_note_id,
+        target_note:notes!target_note_id (
+          id,
+          title,
+          note_type
+        )
+      ),
+      references_to:note_references!target_note_id (
+        source_note_id,
+        source_note:notes!source_note_id (
+          id,
+          title,
+          note_type
+        )
+      ),
+      images:note_images (
+        id,
+        image_url,
+        image_name,
+        image_size,
+        image_type,
+        display_order,
+        created_at,
+        uploaded_by
+      )
+    `)
+    .eq('id', id)
+    .single()
+
+  if (error) {
+    console.error('Get note with all data error:', error)
+    throw error
+  }
+  
+  return data
+}
+
+// Get note with just images
+export const getNoteWithImages = async (id: string): Promise<NoteWithImages | null> => {
+  const { data, error } = await supabase
+    .from('notes')
+    .select(`
+      *,
+      images:note_images (
+        id,
+        image_url,
+        image_name,
+        image_size,
+        image_type,
+        display_order,
+        created_at,
+        uploaded_by
+      )
+    `)
+    .eq('id', id)
+    .single()
+
+  if (error) {
+    console.error('Get note with images error:', error)
+    throw error
+  }
+  
+  return data
+}
+
+// Original getNote function (for backward compatibility)
 export const getNote = async (id: string) => {
   const { data, error } = await supabase
     .from('notes')
@@ -122,7 +221,7 @@ export const deleteNote = async (id: string) => {
   }
 }
 
-// New reference functions
+// Reference functions (existing)
 export const addNoteReference = async (sourceNoteId: string, targetNoteId: string) => {
   const { data, error } = await supabase
     .from('note_references')

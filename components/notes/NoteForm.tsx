@@ -1,9 +1,14 @@
+// components/notes/NoteForm.tsx - Final working version with images
+
 'use client'
 
-import { useState, useRef } from 'react'
-import { Note } from '@/lib/database.types'
+import { useState, useRef, useEffect } from 'react'
+import { Note, NoteImage } from '@/lib/database.types'
 import { insertLinkAtCursor } from '@/lib/noteLinks'
 import NoteLinkHelper from './NoteLinkHelper'
+import ImageUpload from '../images/ImageUpload'
+import ImageGallery from '../images/ImageGallery'
+import { getNoteImages } from '@/lib/images'
 
 interface NoteFormProps {
   onSubmit: (noteData: {
@@ -40,8 +45,31 @@ export default function NoteForm({
   const [noteType, setNoteType] = useState<Note['note_type']>(initialData?.note_type || 'general')
   const [tagsInput, setTagsInput] = useState(initialData?.tags?.join(', ') || '')
   const [showLinkHelper, setShowLinkHelper] = useState(false)
+  const [images, setImages] = useState<NoteImage[]>([])
+  const [loadingImages, setLoadingImages] = useState(false)
   
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => {
+    if (initialData?.id) {
+      loadImages()
+    }
+  }, [initialData?.id])
+
+  const loadImages = async () => {
+    if (!initialData?.id) return
+    
+    setLoadingImages(true)
+    try {
+      const noteImages = await getNoteImages(initialData.id)
+      setImages(noteImages)
+    } catch (error) {
+      console.error('Error loading images:', error)
+      setImages([])
+    } finally {
+      setLoadingImages(false)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -168,6 +196,43 @@ export default function NoteForm({
             Separate multiple tags with commas
           </p>
         </div>
+
+        {/* Images - Only show for existing notes */}
+        {initialData?.id && (
+          <div className="space-y-4">
+            <label className="block text-sm font-medium text-slate-300">
+              Images {loadingImages && <span className="text-xs text-slate-400">(Loading...)</span>}
+            </label>
+            
+            {/* Existing Images */}
+            {images.length > 0 && (
+              <div className="mb-4">
+                <ImageGallery 
+                  images={images}
+                  onImageDeleted={loadImages}
+                  canEdit={true}
+                  compact={true}
+                />
+              </div>
+            )}
+            
+            {/* Upload New Images */}
+            <ImageUpload 
+              noteId={initialData.id}
+              onImageUploaded={loadImages}
+              disabled={isLoading}
+            />
+          </div>
+        )}
+
+        {/* Message for new notes */}
+        {!initialData?.id && (
+          <div className="p-4 bg-blue-500/20 border border-blue-500/30 rounded-lg">
+            <p className="text-sm text-blue-400">
+              💡 <strong>Tip:</strong> Create the note first, then you can add images when editing it.
+            </p>
+          </div>
+        )}
 
         {/* Buttons */}
         <div className="flex space-x-4 pt-4">

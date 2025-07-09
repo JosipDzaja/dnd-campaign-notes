@@ -1,3 +1,5 @@
+// src/app/page.tsx - Complete file with image support
+
 'use client'
 
 import { useEffect, useState, useMemo } from 'react'
@@ -17,6 +19,9 @@ import NotesList from 'components/notes/NotesList'
 import SearchAndFilter from 'components/notes/SearchAndFilter'
 import DeleteConfirmModal from 'components/notes/DeleteConfirmModal'
 import NoteContentRenderer from 'components/notes/NoteContentRenderer'
+import ImageGallery from 'components/images/ImageGallery'
+import { getNoteImages } from 'lib/images'
+import { NoteImage } from 'lib/database.types'
 
 export default function Home() {
   const [user, setUser] = useState<User | null>(null)
@@ -30,6 +35,7 @@ export default function Home() {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [noteToDelete, setNoteToDelete] = useState<Note | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [selectedNoteImages, setSelectedNoteImages] = useState<NoteImage[]>([])
 
   // Search and filter state
   const [searchFilters, setSearchFilters] = useState<SearchFilters>({
@@ -75,6 +81,14 @@ export default function Home() {
     }
   }, [user])
 
+  useEffect(() => {
+    if (selectedNote) {
+      loadSelectedNoteImages()
+    } else {
+      setSelectedNoteImages([])
+    }
+  }, [selectedNote])
+
   const loadNotes = async () => {
     try {
       const notesData = await getNotes()
@@ -82,6 +96,13 @@ export default function Home() {
     } catch (error) {
       console.error('Error loading notes:', error)
       setAllNotes([])
+    }
+  }
+
+  const loadSelectedNoteImages = async () => {
+    if (selectedNote) {
+      const images = await getNoteImages(selectedNote.id)
+      setSelectedNoteImages(images)
     }
   }
 
@@ -263,49 +284,27 @@ export default function Home() {
                 </button>
               </div>
             </div>
-            
-            {/* Note Header */}
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold mb-2 text-white">{selectedNote.title}</h1>
-              <div className="flex items-center space-x-4 text-sm text-slate-400">
-                <span className="capitalize bg-slate-700/50 px-3 py-1 rounded-full">
-                  {selectedNote.note_type}
-                </span>
-                <span>Updated {new Date(selectedNote.updated_at).toLocaleDateString()}</span>
-                {selectedNote.tags && selectedNote.tags.length > 0 && (
-                  <div className="flex space-x-2">
-                    {selectedNote.tags.map((tag, index) => (
-                      <span
-                        key={index}
-                        className="bg-blue-500/20 text-blue-400 px-2 py-1 rounded text-xs border border-blue-500/30"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
 
-            {/* Note Content with Links */}
-            <div className="mb-8">
-              <NoteContentRenderer
-                content={selectedNote.content || ''}
-                notes={allNotes}
-                onNoteClick={handleNavigateToNote}
-              />
-            </div>
+            <NoteContentRenderer 
+              content={selectedNote.content || ''} 
+              notes={allNotes}
+              onNoteClick={handleNavigateToNote}
+            />
 
-            {/* Linking Guide */}
-            {selectedNote.content && selectedNote.content.includes('[[') && (
-              <div className="mt-8 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-                <div className="flex items-center space-x-2 mb-2">
-                  <span className="text-blue-400">🔗</span>
-                  <span className="text-blue-400 font-medium">Note Links</span>
-                </div>
-                <p className="text-slate-300 text-sm">
-                  Click on any highlighted links in the text above to navigate to referenced notes.
-                </p>
+            {/* Image Gallery */}
+            {selectedNoteImages.length > 0 && (
+              <div className="mt-8">
+                <h3 className="text-lg font-semibold text-white mb-4 flex items-center space-x-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 002 2z" />
+                  </svg>
+                  <span>Images</span>
+                </h3>
+                <ImageGallery 
+                  images={selectedNoteImages}
+                  onImageDeleted={loadSelectedNoteImages}
+                  canEdit={true}
+                />
               </div>
             )}
           </div>

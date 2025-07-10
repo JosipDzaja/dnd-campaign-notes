@@ -16,7 +16,8 @@ const NOTE_TYPE_ICONS = {
   quest: '⚔️',
   session: '🎲',
   item: '⚡',
-  lore: '📚'
+  lore: '📚',
+  pantheon: '🛐'
 }
 
 export default function NoteReferences({ 

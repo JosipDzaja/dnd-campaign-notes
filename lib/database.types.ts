@@ -4,7 +4,7 @@ export interface Note {
   id: string
   title: string
   content: string | null
-  note_type: 'general' | 'npc' | 'location' | 'quest' | 'session' | 'item' | 'lore'
+  note_type: 'general' | 'npc' | 'location' | 'quest' | 'session' | 'item' | 'lore' | 'pantheon'
   tags: string[] | null
   created_by: string
   created_at: string

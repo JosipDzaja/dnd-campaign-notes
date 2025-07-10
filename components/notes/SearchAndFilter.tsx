@@ -21,7 +21,8 @@ const NOTE_TYPES = [
   { value: 'quest', label: '⚔️ Quests', icon: '⚔️' },
   { value: 'session', label: '🎲 Sessions', icon: '🎲' },
   { value: 'item', label: '⚡ Items', icon: '⚡' },
-  { value: 'lore', label: '📚 Lore', icon: '📚' }
+  { value: 'lore', label: '📚 Lore', icon: '📚' },
+  { value: 'pantheon', label: '🛐 Pantheon', icon: '🛐' }
 ] as const
 
 export default function SearchAndFilter({

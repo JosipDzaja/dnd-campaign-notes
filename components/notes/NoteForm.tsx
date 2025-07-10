@@ -9,6 +9,7 @@ import NoteLinkHelper from './NoteLinkHelper'
 import ImageUpload from '../images/ImageUpload'
 import ImageGallery from '../images/ImageGallery'
 import { getNoteImages } from '@/lib/images'
+import RichTextEditor from './RichTextEditor'
 
 interface NoteFormProps {
   onSubmit: (noteData: {
@@ -30,7 +31,8 @@ const NOTE_TYPES = [
   { value: 'quest', label: '⚔️ Quest', description: 'Adventures and missions' },
   { value: 'session', label: '🎲 Session', description: 'Game session notes' },
   { value: 'item', label: '⚡ Item', description: 'Magical items and equipment' },
-  { value: 'lore', label: '📚 Lore', description: 'World building and history' }
+  { value: 'lore', label: '📚 Lore', description: 'World building and history' },
+  { value: 'pantheon', label: '🛐 Pantheon', description: 'Gods, religions, and deities' }
 ] as const
 
 export default function NoteForm({ 
@@ -167,13 +169,11 @@ export default function NoteForm({
             </button>
           </div>
           
-          <textarea
-            ref={textareaRef}
+          <RichTextEditor
             value={content}
-            onChange={(e) => setContent(e.target.value)}
-            rows={12}
-            className="w-full p-4 bg-slate-700/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-slate-400 transition-all duration-200 resize-none"
+            onChange={setContent}
             placeholder="Write your note content... Use [[Note Title]] to link to other notes."
+            disabled={isLoading}
           />
           
           <div className="mt-2 text-xs text-slate-400 space-y-1">

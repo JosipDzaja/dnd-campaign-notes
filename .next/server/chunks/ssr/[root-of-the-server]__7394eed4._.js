@@ -121,13 +121,16 @@ var { g: global, __dirname } = __turbopack_context__;
 // lib/notes.ts - Complete notes operations with image support
 __turbopack_context__.s({
     "addNoteReference": (()=>addNoteReference),
+    "buildFolderTree": (()=>buildFolderTree),
     "createNote": (()=>createNote),
     "deleteNote": (()=>deleteNote),
     "getNote": (()=>getNote),
+    "getNoteFolders": (()=>getNoteFolders),
     "getNoteWithAll": (()=>getNoteWithAll),
     "getNoteWithImages": (()=>getNoteWithImages),
     "getNotes": (()=>getNotes),
     "getNotesForReference": (()=>getNotesForReference),
+    "getNotesForUser": (()=>getNotesForUser),
     "getNotesWithImageCounts": (()=>getNotesWithImageCounts),
     "removeNoteReference": (()=>removeNoteReference),
     "updateNote": (()=>updateNote)
@@ -322,6 +325,41 @@ const getNotesForReference = async (excludeId)=>{
     }
     return data || [];
 };
+const getNoteFolders = async (userId)=>{
+    const { data, error } = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$supabase$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["supabase"].from('note_folders').select('*').eq('created_by', userId);
+    if (error) {
+        console.error('Get folders error:', error);
+        throw error;
+    }
+    return data || [];
+};
+const getNotesForUser = async (userId)=>{
+    const { data, error } = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$supabase$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["supabase"].from('notes').select('*').eq('created_by', userId);
+    if (error) {
+        console.error('Get notes error:', error);
+        throw error;
+    }
+    return data || [];
+};
+function buildFolderTree(folders) {
+    const map = new Map();
+    const roots = [];
+    folders.forEach((folder)=>{
+        map.set(folder.id, {
+            ...folder,
+            children: []
+        });
+    });
+    map.forEach((folder)=>{
+        if (folder.parent_id) {
+            const parent = map.get(folder.parent_id);
+            if (parent) parent.children.push(folder);
+        } else {
+            roots.push(folder);
+        }
+    });
+    return roots;
+}
 }}),
 "[project]/lib/search.ts [app-ssr] (ecmascript)": ((__turbopack_context__) => {
 "use strict";

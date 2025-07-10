@@ -8,6 +8,7 @@ export const createNote = async (noteData: {
   content: string
   note_type: Note['note_type']
   tags?: string[]
+  folder_id?: string | null
 }) => {
   const { data: { user } } = await supabase.auth.getUser()
   
@@ -21,6 +22,7 @@ export const createNote = async (noteData: {
         content: noteData.content,
         note_type: noteData.note_type,
         tags: noteData.tags || [],
+        folder_id: noteData.folder_id || null,
         created_by: user.id
       }
     ])
@@ -196,6 +198,7 @@ export const updateNote = async (id: string, updates: Partial<Note>) => {
       content: updates.content,
       note_type: updates.note_type,
       tags: updates.tags,
+      folder_id: updates.folder_id || null,
       updated_at: new Date().toISOString()
     })
     .eq('id', id)
@@ -271,4 +274,73 @@ export const getNotesForReference = async (excludeId?: string) => {
     throw error
   }
   return data || []
+}
+
+// Fetch all folders for a user
+export const getNoteFolders = async (userId: string) => {
+  const { data, error } = await supabase
+    .from('note_folders')
+    .select('*')
+    .eq('created_by', userId)
+
+  if (error) {
+    console.error('Get folders error:', error)
+    throw error
+  }
+  return data || []
+}
+
+// Fetch all notes for a user
+export const getNotesForUser = async (userId: string) => {
+  const { data, error } = await supabase
+    .from('notes')
+    .select('*')
+    .eq('created_by', userId)
+
+  if (error) {
+    console.error('Get notes error:', error)
+    throw error
+  }
+  return data || []
+}
+
+// Build a nested folder tree from a flat array
+export function buildFolderTree(folders: any[]) {
+  const map = new Map();
+  const roots: any[] = [];
+
+  folders.forEach(folder => {
+    map.set(folder.id, { ...folder, children: [] });
+  });
+
+  map.forEach(folder => {
+    if (folder.parent_id) {
+      const parent = map.get(folder.parent_id);
+      if (parent) parent.children.push(folder);
+    } else {
+      roots.push(folder);
+    }
+  });
+
+  return roots;
+}
+
+export const createNoteFolder = async ({ name, icon, parent_id, userId }: { name: string, icon: string, parent_id?: string | null, userId: string }) => {
+  const { data, error } = await supabase
+    .from('note_folders')
+    .insert([
+      {
+        name,
+        icon,
+        parent_id: parent_id || null,
+        created_by: userId,
+      }
+    ])
+    .select()
+    .single()
+  if (error) {
+    console.error('Create folder error:', error)
+    throw error
+  }
+  return data
 }

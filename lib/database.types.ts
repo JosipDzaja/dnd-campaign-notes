@@ -9,6 +9,7 @@ export interface Note {
   created_by: string
   created_at: string
   updated_at: string
+  folder_id: string | null
 }
 
 export interface NotePermission {
@@ -36,6 +37,15 @@ export interface NoteImage {
   display_order: number
   created_at: string
   uploaded_by: string | null
+}
+
+export interface NoteFolder {
+  id: string
+  name: string
+  icon?: string | null
+  parent_id?: string | null
+  created_by: string
+  created_at: string
 }
 
 // Extended types for queries with references and images

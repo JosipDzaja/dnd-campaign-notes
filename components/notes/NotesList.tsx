@@ -53,18 +53,22 @@ export default function NotesList({
     )
   }
 
+  function stripHtmlTags(html: string) {
+    // Remove all HTML tags
+    return html.replace(/<[^>]+>/g, '')
+  }
+
   const renderPreviewContent = (content: string | null, note: Note) => {
     if (!content) return 'No content'
-    
+    // Remove HTML tags
+    const plain = stripHtmlTags(content)
     // Get first 150 characters for preview
-    const preview = content.slice(0, 150)
-    const truncated = content.length > 150 ? preview + '...' : preview
-    
+    const preview = plain.slice(0, 150)
+    const truncated = plain.length > 150 ? preview + '...' : preview
     // If there's a search query, highlight it in the raw text
     if (searchQuery) {
       return highlightText(truncated, searchQuery)
     }
-    
     // If there are links in the content, render them properly
     if (truncated.includes('[[')) {
       const linkElements = renderContentWithLinks(
@@ -72,14 +76,12 @@ export default function NotesList({
         allNotes, 
         (linkedNote) => onSelectNote(linkedNote)
       )
-      
       return (
         <span className="inline-flex flex-wrap items-baseline gap-0">
           {linkElements}
         </span>
       )
     }
-    
     return truncated
   }
 

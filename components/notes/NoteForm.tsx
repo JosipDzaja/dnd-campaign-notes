@@ -3,13 +3,14 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Note, NoteImage } from '@/lib/database.types'
+import { Note, NoteImage, NoteFolder } from '@/lib/database.types'
 import { insertLinkAtCursor } from '@/lib/noteLinks'
 import NoteLinkHelper from './NoteLinkHelper'
 import ImageUpload from '../images/ImageUpload'
 import ImageGallery from '../images/ImageGallery'
 import { getNoteImages } from '@/lib/images'
 import RichTextEditor from './RichTextEditor'
+import FolderDropdown from './FolderDropdown'
 
 interface NoteFormProps {
   onSubmit: (noteData: {
@@ -17,11 +18,14 @@ interface NoteFormProps {
     content: string
     note_type: Note['note_type']
     tags: string[]
+    folder_id: string | null
   }) => Promise<void>
   onCancel: () => void
   initialData?: Partial<Note>
   isLoading?: boolean
   allNotes: Note[]
+  folders: NoteFolder[]
+  defaultFolderId?: string | null
 }
 
 const NOTE_TYPES = [
@@ -40,7 +44,9 @@ export default function NoteForm({
   onCancel, 
   initialData, 
   isLoading, 
-  allNotes 
+  allNotes, 
+  folders,
+  defaultFolderId
 }: NoteFormProps) {
   const [title, setTitle] = useState(initialData?.title || '')
   const [content, setContent] = useState(initialData?.content || '')
@@ -49,6 +55,9 @@ export default function NoteForm({
   const [showLinkHelper, setShowLinkHelper] = useState(false)
   const [images, setImages] = useState<NoteImage[]>([])
   const [loadingImages, setLoadingImages] = useState(false)
+  const [folderId, setFolderId] = useState<string | null>(
+    initialData?.folder_id ?? defaultFolderId ?? null
+  )
   
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -85,7 +94,8 @@ export default function NoteForm({
       title,
       content,
       note_type: noteType,
-      tags
+      tags,
+      folder_id: folderId,
     })
   }
 
@@ -109,6 +119,20 @@ export default function NoteForm({
         }
       }, 0)
     }
+  }
+
+  function getFolderIcon(icon: string) {
+    const ICONS: Record<string, string> = {
+      general: '📝',
+      npc: '🧙‍♂️',
+      location: '🏰',
+      quest: '⚔️',
+      session: '🎲',
+      item: '⚡',
+      lore: '📚',
+      pantheon: '🛐',
+    }
+    return ICONS[icon] || '📁'
   }
 
   return (
@@ -151,6 +175,17 @@ export default function NoteForm({
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Folder Selection */}
+        <div>
+          <label className="block text-sm font-medium mb-3 text-slate-300">Folder</label>
+          <FolderDropdown
+            folders={folders}
+            value={folderId}
+            onChange={setFolderId}
+            placeholder="No Folder (Unsorted)"
+          />
         </div>
 
         {/* Content */}

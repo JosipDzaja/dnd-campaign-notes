@@ -18,27 +18,18 @@ export default function NoteContentRenderer({
     return <div className="text-slate-400 italic">No content</div>
   }
 
-  const renderParagraphs = (text: string) => {
-    return text.split('\n').map((paragraph, index) => {
-      if (paragraph.trim() === '') {
-        return <br key={index} />
-      }
-      
-      const renderedContent = renderContentWithLinks(paragraph, notes, onNoteClick)
-      
-      return (
-        <p key={index} className="mb-4 last:mb-0 leading-relaxed">
-          {renderedContent}
-        </p>
-      )
+  // Render content as plain text with clickable links, no <p> or <div> wrappers
+  const renderLines = (text: string) => {
+    return text.split(/\r?\n/).map((line, index) => {
+      if (line.trim() === '') return <br key={index} />
+      const renderedContent = renderContentWithLinks(line, notes, onNoteClick)
+      return <span key={index}>{renderedContent}<br /></span>
     })
   }
 
   return (
-    <div className="prose prose-invert max-w-none">
-      <div className="text-slate-200">
-        {renderParagraphs(content)}
-      </div>
-    </div>
+    <span className="text-slate-200">
+      {renderLines(content)}
+    </span>
   )
 }

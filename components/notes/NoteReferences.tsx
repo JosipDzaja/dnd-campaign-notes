@@ -9,17 +9,6 @@ interface NoteReferencesProps {
   canEdit: boolean
 }
 
-const NOTE_TYPE_ICONS = {
-  general: '📝',
-  npc: '🧙‍♂️',
-  location: '🏰',
-  quest: '⚔️',
-  session: '🎲',
-  item: '⚡',
-  lore: '📚',
-  pantheon: '🛐'
-}
-
 export default function NoteReferences({ 
   note, 
   onNavigateToNote, 
@@ -54,14 +43,17 @@ export default function NoteReferences({
                     className="flex items-center space-x-3 flex-1 text-left hover:text-blue-400 transition-colors"
                   >
                     <span className="text-xl">
-                      {NOTE_TYPE_ICONS[ref.target_note.note_type]}
+                      {ref.target_note.category?.icon ?? '📘'}
                     </span>
                     <div>
                       <h4 className="font-medium text-white group-hover:text-blue-400 transition-colors">
                         {ref.target_note.title}
                       </h4>
                       <p className="text-sm text-slate-400 capitalize">
-                        {ref.target_note.note_type}
+                        <span className="inline-flex items-center gap-1">
+                          <span>{ref.target_note.category?.icon ?? '📘'}</span>
+                          <span>{ref.target_note.category?.name ?? 'General'}</span>
+                        </span>
                       </p>
                     </div>
                   </button>
@@ -99,14 +91,17 @@ export default function NoteReferences({
               >
                 <div className="flex items-center space-x-3">
                   <span className="text-xl">
-                    {NOTE_TYPE_ICONS[ref.source_note.note_type]}
+                    {ref.source_note.category?.icon ?? '📘'}
                   </span>
                   <div>
                     <h4 className="font-medium text-white group-hover:text-blue-400 transition-colors">
                       {ref.source_note.title}
                     </h4>
                     <p className="text-sm text-slate-400 capitalize">
-                      {ref.source_note.note_type}
+                      <span className="inline-flex items-center gap-1">
+                        <span>{ref.source_note.category?.icon ?? '📘'}</span>
+                        <span>{ref.source_note.category?.name ?? 'General'}</span>
+                      </span>
                     </p>
                   </div>
                 </div>

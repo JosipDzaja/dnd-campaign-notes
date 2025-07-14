@@ -2,7 +2,7 @@ import { Note } from './database.types'
 
 export interface SearchFilters {
   query: string
-  type: Note['note_type'] | 'all'
+  category: string | 'all'
   tag: string
 }
 
@@ -22,9 +22,9 @@ export const searchAndFilterNotes = (
     )
   }
 
-  // Type filter
-  if (filters.type !== 'all') {
-    filteredNotes = filteredNotes.filter(note => note.note_type === filters.type)
+  // Category filter
+  if (filters.category !== 'all') {
+    filteredNotes = filteredNotes.filter(note => note.category_id === filters.category)
   }
 
   // Tag filter
@@ -47,23 +47,4 @@ export const getAvailableTags = (notes: Note[]): string[] => {
   })
 
   return Array.from(tagSet).sort()
-}
-
-export const getNoteCounts = (notes: Note[]) => {
-  const counts = {
-    all: notes.length,
-    general: 0,
-    npc: 0,
-    location: 0,
-    quest: 0,
-    session: 0,
-    item: 0,
-    lore: 0
-  }
-
-  notes.forEach(note => {
-    counts[note.note_type]++
-  })
-
-  return counts
 }

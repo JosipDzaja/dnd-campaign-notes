@@ -3,41 +3,30 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Note, NoteImage, NoteFolder } from '@/lib/database.types'
+import { Note, NoteImage, NoteCategory } from '@/lib/database.types'
 import { insertLinkAtCursor } from '@/lib/noteLinks'
 import NoteLinkHelper from './NoteLinkHelper'
 import ImageUpload from '../images/ImageUpload'
 import ImageGallery from '../images/ImageGallery'
 import { getNoteImages } from '@/lib/images'
 import RichTextEditor from './RichTextEditor'
-import FolderDropdown from './FolderDropdown'
+import CategoryDropdown from './CategoryDropdown'
+import { ICON_OPTIONS } from '@/lib/icons';
 
 interface NoteFormProps {
   onSubmit: (noteData: {
     title: string
     content: string
-    note_type: Note['note_type']
     tags: string[]
-    folder_id: string | null
+    category_id: string | null
   }) => Promise<void>
   onCancel: () => void
   initialData?: Partial<Note>
   isLoading?: boolean
   allNotes: Note[]
-  folders: NoteFolder[]
-  defaultFolderId?: string | null
+  categories: NoteCategory[]
+  defaultCategoryId?: string | null
 }
-
-const NOTE_TYPES = [
-  { value: 'general', label: '📝 General', description: 'General notes and ideas' },
-  { value: 'npc', label: '🧙‍♂️ NPC', description: 'Non-player characters' },
-  { value: 'location', label: '🏰 Location', description: 'Places and areas' },
-  { value: 'quest', label: '⚔️ Quest', description: 'Adventures and missions' },
-  { value: 'session', label: '🎲 Session', description: 'Game session notes' },
-  { value: 'item', label: '⚡ Item', description: 'Magical items and equipment' },
-  { value: 'lore', label: '📚 Lore', description: 'World building and history' },
-  { value: 'pantheon', label: '🛐 Pantheon', description: 'Gods, religions, and deities' }
-] as const
 
 export default function NoteForm({ 
   onSubmit, 
@@ -45,18 +34,17 @@ export default function NoteForm({
   initialData, 
   isLoading, 
   allNotes, 
-  folders,
-  defaultFolderId
+  categories,
+  defaultCategoryId
 }: NoteFormProps) {
   const [title, setTitle] = useState(initialData?.title || '')
   const [content, setContent] = useState(initialData?.content || '')
-  const [noteType, setNoteType] = useState<Note['note_type']>(initialData?.note_type || 'general')
   const [tagsInput, setTagsInput] = useState(initialData?.tags?.join(', ') || '')
   const [showLinkHelper, setShowLinkHelper] = useState(false)
   const [images, setImages] = useState<NoteImage[]>([])
   const [loadingImages, setLoadingImages] = useState(false)
-  const [folderId, setFolderId] = useState<string | null>(
-    initialData?.folder_id ?? defaultFolderId ?? null
+  const [categoryId, setCategoryId] = useState<string | null>(
+    initialData?.category_id ?? defaultCategoryId ?? null
   )
   
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -93,9 +81,8 @@ export default function NoteForm({
     await onSubmit({
       title,
       content,
-      note_type: noteType,
       tags,
-      folder_id: folderId,
+      category_id: categoryId,
     })
   }
 
@@ -155,38 +142,37 @@ export default function NoteForm({
           />
         </div>
 
-        {/* Note Type */}
+        {/* Category Selection */}
         <div>
-          <label className="block text-sm font-medium mb-3 text-slate-300">Note Type</label>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {NOTE_TYPES.map((type) => (
+          <label className="block text-sm font-medium mb-3 text-slate-300">Category</label>
+          <CategoryDropdown
+            categories={categories}
+            value={categoryId}
+            onChange={setCategoryId}
+            placeholder="No Category (Unsorted)"
+          />
+        </div>
+
+        {/* Icon Picker (disabled, icon is set by category) */}
+        {/*
+        <div>
+          <label className="block text-sm font-medium mb-3 text-slate-300">Icon</label>
+          <div className="grid grid-cols-6 gap-2">
+            {ICON_OPTIONS.map(opt => (
               <button
-                key={type.value}
+                key={opt.key}
                 type="button"
-                onClick={() => setNoteType(type.value)}
-                className={`p-4 text-left border rounded-lg transition-all duration-200 ${
-                  noteType === type.value
-                    ? 'border-blue-500 bg-blue-500/20 text-blue-400'
-                    : 'border-slate-600 bg-slate-700/30 text-slate-300 hover:border-slate-500 hover:bg-slate-700/50'
-                }`}
+                className={`flex flex-col items-center justify-center p-2 rounded border transition-all duration-200 ${icon === opt.key ? 'border-blue-500 bg-blue-500/20 text-blue-400' : 'border-slate-600 bg-slate-700/30 text-slate-300 hover:border-slate-500 hover:bg-slate-700/50'}`}
+                onClick={() => setIcon(opt.key)}
+                tabIndex={0}
               >
-                <div className="font-medium text-sm">{type.label}</div>
-                <div className="text-xs text-slate-400 mt-1">{type.description}</div>
+                <opt.icon className="text-xl mb-1" />
+                <span className="text-xs">{opt.label}</span>
               </button>
             ))}
           </div>
         </div>
-
-        {/* Folder Selection */}
-        <div>
-          <label className="block text-sm font-medium mb-3 text-slate-300">Folder</label>
-          <FolderDropdown
-            folders={folders}
-            value={folderId}
-            onChange={setFolderId}
-            placeholder="No Folder (Unsorted)"
-          />
-        </div>
+        */}
 
         {/* Content */}
         <div>
@@ -273,7 +259,7 @@ export default function NoteForm({
         <div className="flex space-x-4 pt-4">
           <button
             type="submit"
-            disabled={isLoading || !title.trim()}
+            disabled={isLoading || !title.trim() || !categoryId}
             className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white p-4 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:transform-none"
           >
             {isLoading ? 'Saving...' : (initialData ? 'Update Note' : 'Create Note')}

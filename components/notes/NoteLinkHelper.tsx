@@ -10,17 +10,6 @@ interface NoteLinkHelperProps {
   onClose: () => void
 }
 
-const NOTE_TYPE_ICONS = {
-  general: '📝',
-  npc: '🧙‍♂️',
-  location: '🏰',
-  quest: '⚔️',
-  session: '🎲',
-  item: '⚡',
-  lore: '📚',
-  pantheon: '🛐'
-}
-
 export default function NoteLinkHelper({ 
   isOpen, 
   notes, 
@@ -98,10 +87,15 @@ export default function NoteLinkHelper({
                   }`}
                 >
                   <div className="flex items-center space-x-3">
-                    <span className="text-xl">{NOTE_TYPE_ICONS[note.note_type]}</span>
+                    <span className="text-xl">{note.category?.icon ?? '📘'}</span>
                     <div>
                       <h4 className="font-medium text-white">{note.title}</h4>
-                      <p className="text-sm text-slate-400 capitalize">{note.note_type}</p>
+                      <p className="text-sm text-slate-400 capitalize">
+                        <span className="inline-flex items-center gap-1">
+                          <span>{note.category?.icon ?? '📘'}</span>
+                          <span>{note.category?.name ?? 'General'}</span>
+                        </span>
+                      </p>
                     </div>
                   </div>
                 </button>

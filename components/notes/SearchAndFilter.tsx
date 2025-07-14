@@ -2,37 +2,34 @@
 
 import { useState } from 'react'
 import { Note } from '@/lib/database.types'
+import { NoteCategory } from '@/lib/database.types'
+import { ICON_MAP } from '@/lib/icons';
+import React from 'react';
 
 interface SearchAndFilterProps {
   onSearch: (query: string) => void
-  onFilterType: (type: Note['note_type'] | 'all') => void
+  onFilterCategory: (category: string | 'all') => void
   onFilterTag: (tag: string) => void
   searchQuery: string
-  selectedType: Note['note_type'] | 'all'
+  selectedCategory: string | 'all'
   availableTags: string[]
   selectedTag: string
+  categories: NoteCategory[]
 }
 
-const NOTE_TYPES = [
-  { value: 'all', label: '🔍 All Types', icon: '🔍' },
-  { value: 'general', label: '📝 General', icon: '📝' },
-  { value: 'npc', label: '🧙‍♂️ NPCs', icon: '🧙‍♂️' },
-  { value: 'location', label: '🏰 Locations', icon: '🏰' },
-  { value: 'quest', label: '⚔️ Quests', icon: '⚔️' },
-  { value: 'session', label: '🎲 Sessions', icon: '🎲' },
-  { value: 'item', label: '⚡ Items', icon: '⚡' },
-  { value: 'lore', label: '📚 Lore', icon: '📚' },
-  { value: 'pantheon', label: '🛐 Pantheon', icon: '🛐' }
-] as const
+// Remove NOTE_TYPES and all type-related logic
+// Add category filter using categories prop
+// Update handlers and UI to use category/category_id
 
 export default function SearchAndFilter({
   onSearch,
-  onFilterType,
+  onFilterCategory,
   onFilterTag,
   searchQuery,
-  selectedType,
+  selectedCategory,
   availableTags = [], // Default to empty array
-  selectedTag
+  selectedTag,
+  categories = [],
 }: SearchAndFilterProps) {
   const [showFilters, setShowFilters] = useState(false)
 
@@ -67,15 +64,15 @@ export default function SearchAndFilter({
         </button>
 
         {/* Active Filters Count */}
-        {(selectedType !== 'all' || selectedTag !== 'all') && (
+        {(selectedCategory !== 'all' || selectedTag !== 'all') && (
           <div className="flex items-center space-x-2">
             <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded-full border border-blue-500/30">
-              {selectedType !== 'all' && selectedTag !== 'all' ? '2 filters active' :
-               selectedType !== 'all' ? 'Type filter' : 'Tag filter'}
+              {selectedCategory !== 'all' && selectedTag !== 'all' ? '2 filters active' :
+               selectedCategory !== 'all' ? 'Category filter' : 'Tag filter'}
             </span>
             <button
               onClick={() => {
-                onFilterType('all')
+                onFilterCategory('all')
                 onFilterTag('all')
               }}
               className="text-xs text-slate-400 hover:text-slate-300 underline"
@@ -89,22 +86,37 @@ export default function SearchAndFilter({
       {/* Filter Options */}
       {showFilters && (
         <div className="mt-6 space-y-6 border-t border-slate-700 pt-6">
-          {/* Note Type Filter */}
+          {/* Category Filter */}
           <div>
-            <h3 className="text-sm font-medium text-slate-300 mb-3">Filter by Type</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-              {NOTE_TYPES.map((type) => (
+            <h3 className="text-sm font-medium text-slate-300 mb-3">Filter by Category</h3>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => onFilterCategory('all')}
+                className={`px-3 py-2 text-sm rounded-lg transition-all duration-200 flex items-center space-x-2 ${
+                  selectedCategory === 'all'
+                    ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                    : 'bg-slate-700/50 text-slate-300 border border-slate-600 hover:border-slate-500'
+                }`}
+              >
+                <span>🔍</span>
+                <span>All Categories</span>
+              </button>
+              {categories.map((cat) => (
                 <button
-                  key={type.value}
-                  onClick={() => onFilterType(type.value as Note['note_type'] | 'all')}
-                  className={`p-3 text-left border rounded-lg transition-all duration-200 flex items-center space-x-2 ${
-                    selectedType === type.value
-                      ? 'border-blue-500 bg-blue-500/20 text-blue-400'
-                      : 'border-slate-600 bg-slate-700/30 text-slate-300 hover:border-slate-500 hover:bg-slate-700/50'
+                  key={cat.id}
+                  onClick={() => onFilterCategory(cat.id)}
+                  className={`px-3 py-2 text-sm rounded-lg transition-all duration-200 flex items-center space-x-2 ${
+                    selectedCategory === cat.id
+                      ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                      : 'bg-slate-700/50 text-slate-300 border border-slate-600 hover:border-slate-500'
                   }`}
                 >
-                  <span>{type.icon}</span>
-                  <span className="text-sm font-medium truncate">{type.label}</span>
+                  <span className="text-xl">
+                    {cat.icon && ICON_MAP[cat.icon]
+                      ? React.createElement(ICON_MAP[cat.icon])
+                      : '📁'}
+                  </span>
+                  <span>{cat.name}</span>
                 </button>
               ))}
             </div>

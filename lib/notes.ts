@@ -1,14 +1,13 @@
 // lib/notes.ts - Complete notes operations with image support
 
 import { supabase } from './supabase'
-import { Note, NoteWithImages, NoteWithAll } from './database.types'
+import { Note, NoteWithImages, NoteWithAll, NoteCategory } from './database.types'
 
 export const createNote = async (noteData: {
   title: string
   content: string
-  note_type: Note['note_type']
   tags?: string[]
-  folder_id?: string | null
+  category_id?: string | null
 }) => {
   const { data: { user } } = await supabase.auth.getUser()
   
@@ -20,13 +19,12 @@ export const createNote = async (noteData: {
       {
         title: noteData.title,
         content: noteData.content,
-        note_type: noteData.note_type,
         tags: noteData.tags || [],
-        folder_id: noteData.folder_id || null,
+        category_id: noteData.category_id || null,
         created_by: user.id
       }
     ])
-    .select()
+    .select('*, category:note_categories(*)')
     .single()
 
   if (noteError) {
@@ -54,7 +52,7 @@ export const createNote = async (noteData: {
 export const getNotes = async (): Promise<Note[]> => {
   const { data, error } = await supabase
     .from('notes')
-    .select('*')
+    .select('*, category:note_categories(*)')
     .order('updated_at', { ascending: false })
 
   if (error) {
@@ -70,6 +68,7 @@ export const getNotesWithImageCounts = async () => {
     .from('notes')
     .select(`
       *,
+      category:note_categories(*),
       image_count:note_images(count)
     `)
     .order('updated_at', { ascending: false })
@@ -94,12 +93,13 @@ export const getNoteWithAll = async (id: string): Promise<NoteWithAll | null> =>
     .from('notes')
     .select(`
       *,
+      category:note_categories(*),
       references_from:note_references!source_note_id (
         target_note_id,
         target_note:notes!target_note_id (
           id,
           title,
-          note_type
+          category:note_categories(*)
         )
       ),
       references_to:note_references!target_note_id (
@@ -107,7 +107,7 @@ export const getNoteWithAll = async (id: string): Promise<NoteWithAll | null> =>
         source_note:notes!source_note_id (
           id,
           title,
-          note_type
+          category:note_categories(*)
         )
       ),
       images:note_images (
@@ -138,6 +138,7 @@ export const getNoteWithImages = async (id: string): Promise<NoteWithImages | nu
     .from('notes')
     .select(`
       *,
+      category:note_categories(*),
       images:note_images (
         id,
         image_url,
@@ -166,12 +167,13 @@ export const getNote = async (id: string) => {
     .from('notes')
     .select(`
       *,
+      category:note_categories(*),
       references_from:note_references!source_note_id (
         target_note_id,
         target_note:notes!target_note_id (
           id,
           title,
-          note_type
+          category:note_categories(*)
         )
       ),
       references_to:note_references!target_note_id (
@@ -179,7 +181,7 @@ export const getNote = async (id: string) => {
         source_note:notes!source_note_id (
           id,
           title,
-          note_type
+          category:note_categories(*)
         )
       )
     `)
@@ -196,13 +198,12 @@ export const updateNote = async (id: string, updates: Partial<Note>) => {
     .update({
       title: updates.title,
       content: updates.content,
-      note_type: updates.note_type,
       tags: updates.tags,
-      folder_id: updates.folder_id || null,
+      category_id: updates.category_id || null,
       updated_at: new Date().toISOString()
     })
     .eq('id', id)
-    .select()
+    .select('*, category:note_categories(*)')
     .single()
 
   if (error) {
@@ -276,71 +277,39 @@ export const getNotesForReference = async (excludeId?: string) => {
   return data || []
 }
 
-// Fetch all folders for a user
-export const getNoteFolders = async (userId: string) => {
+// Fetch all categories
+export const getNoteCategories = async () => {
   const { data, error } = await supabase
-    .from('note_folders')
+    .from('note_categories')
     .select('*')
-    .eq('created_by', userId)
-
+    .order('sort_order', { ascending: true })
   if (error) {
-    console.error('Get folders error:', error)
+    console.error('Get categories error:', error)
     throw error
   }
-  return data || []
+  return data as NoteCategory[] || []
 }
 
-// Fetch all notes for a user
-export const getNotesForUser = async (userId: string) => {
+// No category tree logic needed (flat list)
+
+export const createNoteCategory = async ({ name, icon, color, category_type, sort_order, is_active }: { name: string, icon?: string, color?: string, category_type?: string, sort_order?: number, is_active?: boolean }) => {
   const { data, error } = await supabase
-    .from('notes')
-    .select('*')
-    .eq('created_by', userId)
-
-  if (error) {
-    console.error('Get notes error:', error)
-    throw error
-  }
-  return data || []
-}
-
-// Build a nested folder tree from a flat array
-export function buildFolderTree(folders: any[]) {
-  const map = new Map();
-  const roots: any[] = [];
-
-  folders.forEach(folder => {
-    map.set(folder.id, { ...folder, children: [] });
-  });
-
-  map.forEach(folder => {
-    if (folder.parent_id) {
-      const parent = map.get(folder.parent_id);
-      if (parent) parent.children.push(folder);
-    } else {
-      roots.push(folder);
-    }
-  });
-
-  return roots;
-}
-
-export const createNoteFolder = async ({ name, icon, parent_id, userId }: { name: string, icon: string, parent_id?: string | null, userId: string }) => {
-  const { data, error } = await supabase
-    .from('note_folders')
+    .from('note_categories')
     .insert([
       {
         name,
-        icon,
-        parent_id: parent_id || null,
-        created_by: userId,
+        icon: icon || null,
+        color: color || null,
+        category_type: category_type || 'custom',
+        sort_order: sort_order || 0,
+        is_active: is_active ?? true,
       }
     ])
     .select()
     .single()
   if (error) {
-    console.error('Create folder error:', error)
+    console.error('Create category error:', error)
     throw error
   }
-  return data
+  return data as NoteCategory
 }

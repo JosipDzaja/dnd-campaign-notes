@@ -11,10 +11,8 @@ import {
   getNotes, 
   updateNote, 
   deleteNote,
-  getNoteFolders,
-  buildFolderTree,
-  getNotesForUser,
-  createNoteFolder
+  getNoteCategories,
+  createNoteCategory
 } from 'lib/notes'
 import { searchAndFilterNotes, getAvailableTags, SearchFilters } from 'lib/search'
 import LoginForm from 'components/auth/LoginForm'
@@ -26,9 +24,9 @@ import NoteContentRenderer from 'components/notes/NoteContentRenderer'
 import ImageGallery from 'components/images/ImageGallery'
 import { getNoteImages } from 'lib/images'
 import { NoteImage } from 'lib/database.types'
-import FolderSidebar from 'components/notes/FolderSidebar'
-import { NoteFolder } from 'lib/database.types'
-import FolderCreateModal from 'components/notes/FolderCreateModal'
+import CategorySidebar from 'components/notes/CategorySidebar'
+import { NoteCategory } from 'lib/database.types'
+import CategoryCreateModal from 'components/notes/CategoryCreateModal'
 
 export default function Home() {
   const [user, setUser] = useState<User | null>(null)
@@ -43,17 +41,15 @@ export default function Home() {
   const [noteToDelete, setNoteToDelete] = useState<Note | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const [selectedNoteImages, setSelectedNoteImages] = useState<NoteImage[]>([])
-  const [folders, setFolders] = useState<NoteFolder[]>([])
-  const [folderTree, setFolderTree] = useState<any[]>([])
-  const [selectedFolderId, setSelectedFolderId] = useState<string | undefined>(undefined)
-  const [showFolderModal, setShowFolderModal] = useState(false)
-  const [folderModalParent, setFolderModalParent] = useState<{ id: string, name: string } | null>(null)
-  const [isCreatingFolder, setIsCreatingFolder] = useState(false)
+  const [categories, setCategories] = useState<NoteCategory[]>([])
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | undefined>(undefined)
+  const [showCategoryModal, setShowCategoryModal] = useState(false)
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false)
 
   // Search and filter state
-  const [searchFilters, setSearchFilters] = useState<SearchFilters>({
+  const [searchFilters, setSearchFilters] = useState({
     query: '',
-    type: 'all',
+    category: 'all',
     tag: 'all'
   })
 
@@ -68,13 +64,13 @@ export default function Home() {
     return getAvailableTags(allNotes)
   }, [allNotes])
 
-  const isFiltered = searchFilters.query !== '' || searchFilters.type !== 'all' || searchFilters.tag !== 'all'
+  const isFiltered = searchFilters.query !== '' || searchFilters.category !== 'all' || searchFilters.tag !== 'all'
 
-  // Filter notes by selected folder
-  const notesInSelectedFolder = useMemo(() => {
-    if (!selectedFolderId) return filteredNotes
-    return filteredNotes.filter(note => note.folder_id === selectedFolderId)
-  }, [filteredNotes, selectedFolderId])
+  // Filter notes by selected category
+  const notesInSelectedCategory = useMemo(() => {
+    if (!selectedCategoryId) return filteredNotes
+    return filteredNotes.filter(note => note.category_id === selectedCategoryId)
+  }, [filteredNotes, selectedCategoryId])
 
   useEffect(() => {
     const checkUser = async () => {
@@ -97,7 +93,7 @@ export default function Home() {
   useEffect(() => {
     if (user) {
       loadNotes()
-      loadFolders()
+      loadCategories()
     }
   }, [user])
 
@@ -130,32 +126,13 @@ export default function Home() {
     { key: 'pantheon', name: 'Pantheon', icon: 'pantheon' },
   ]
 
-  const loadFolders = async () => {
+  const loadCategories = async () => {
     try {
-      const folderData = await getNoteFolders(user!.id)
-      // Inject default root folders if missing
-      const rootFolders = folderData.filter(f => !f.parent_id)
-      const missingDefaults = NOTE_CATEGORIES.filter(cat => !rootFolders.some(f => f.icon === cat.icon))
-      let allFolders = [...folderData]
-      if (missingDefaults.length > 0) {
-        // Add missing default folders (not persisted, just for UI)
-        const tempDefaults = missingDefaults.map(cat => ({
-          id: `default-${cat.key}`,
-          name: cat.name,
-          icon: cat.icon,
-          parent_id: null,
-          created_by: user!.id,
-          created_at: '',
-          isDefault: true,
-        }))
-        allFolders = [...allFolders, ...tempDefaults]
-      }
-      setFolders(allFolders)
-      setFolderTree(buildFolderTree(allFolders))
+      const categoryData = await getNoteCategories()
+      setCategories(categoryData)
     } catch (error) {
-      console.error('Error loading folders:', error)
-      setFolders([])
-      setFolderTree([])
+      console.error('Error loading categories:', error)
+      setCategories([])
     }
   }
 
@@ -177,8 +154,8 @@ export default function Home() {
   const handleCreateNote = async (noteData: {
     title: string
     content: string
-    note_type: Note['note_type']
     tags: string[]
+    category_id: string | null
   }) => {
     setIsCreating(true)
     try {
@@ -202,8 +179,8 @@ export default function Home() {
   const handleUpdateNote = async (noteData: {
     title: string
     content: string
-    note_type: Note['note_type']
     tags: string[]
+    category_id: string | null
   }) => {
     if (!editingNote) return
 
@@ -249,8 +226,8 @@ export default function Home() {
     setSearchFilters(prev => ({ ...prev, query }))
   }
 
-  const handleFilterType = (type: Note['note_type'] | 'all') => {
-    setSearchFilters(prev => ({ ...prev, type }))
+  const handleFilterCategory = (category: string | 'all') => {
+    setSearchFilters(prev => ({ ...prev, category }))
   }
 
   const handleFilterTag = (tag: string) => {
@@ -261,54 +238,23 @@ export default function Home() {
     await supabase.auth.signOut()
   }
 
-  // FolderSidebar handlers
-  const handleSelectFolder = (folderId: string) => {
-    setSelectedFolderId(folderId)
+  // CategorySidebar handlers
+  const handleSelectCategory = (categoryId: string | undefined) => {
+    setSelectedCategoryId(categoryId)
     setSelectedNote(null)
     setEditingNote(null)
     setShowCreateForm(false)
   }
-  const handleCreateRootFolder = () => {
-    setFolderModalParent(null)
-    setShowFolderModal(true)
-  }
-  const handleCreateSubfolder = (parentId: string) => {
-    const parent = folders.find(f => f.id === parentId)
-    if (parent) {
-      setFolderModalParent({ id: parent.id, name: parent.name })
-      setShowFolderModal(true)
-    }
-  }
-  const handleEditFolder = (folderId: string) => {
-    // TODO: Implement folder rename modal
-    alert('Edit folder: ' + folderId)
-  }
-  const handleDeleteFolder = (folderId: string) => {
-    // TODO: Implement folder delete confirmation
-    alert('Delete folder: ' + folderId)
-  }
-  const handleReorderFolders = (sourceId: string, destId: string | null) => {
-    // TODO: Implement drag-and-drop reorder
-    alert(`Move folder ${sourceId} to ${destId}`)
-  }
-
-  const handleCreateFolder = async (name: string, icon: string) => {
-    if (!user) return
-    setIsCreatingFolder(true)
+  const handleCreateCategory = async (name: string, icon: string) => {
+    setIsCreatingCategory(true)
     try {
-      await createNoteFolder({
-        name,
-        icon,
-        parent_id: folderModalParent?.id || null,
-        userId: user.id
-      })
-      setShowFolderModal(false)
-      setFolderModalParent(null)
-      await loadFolders()
+      await createNoteCategory({ name, icon })
+      setShowCategoryModal(false)
+      await loadCategories()
     } catch (error) {
-      alert('Failed to create folder. Please try again.')
+      alert('Failed to create category. Please try again.')
     } finally {
-      setIsCreatingFolder(false)
+      setIsCreatingCategory(false)
     }
   }
 
@@ -350,20 +296,15 @@ export default function Home() {
 
       {/* Main Content with Sidebar */}
       <div className="max-w-6xl mx-auto px-4 py-8 flex gap-6">
-        {/* Folder Sidebar */}
+        {/* Category Sidebar */}
         <div className="hidden md:block w-72 flex-shrink-0">
-          <FolderSidebar
-            folders={folderTree}
+          <CategorySidebar
+            categories={categories}
             notes={allNotes}
-            selectedFolderId={selectedFolderId}
-            onSelectFolder={handleSelectFolder}
-            onCreateSubfolder={handleCreateSubfolder}
-            onEditFolder={handleEditFolder}
-            onDeleteFolder={handleDeleteFolder}
-            onReorder={handleReorderFolders}
+            selectedCategoryId={selectedCategoryId}
+            onSelectCategory={handleSelectCategory}
             onSelectNote={handleSelectNote}
-            // Add root folder button below
-            headerAction={handleCreateRootFolder}
+            headerAction={() => setShowCategoryModal(true)}
           />
         </div>
         {/* Main Area */}
@@ -374,8 +315,8 @@ export default function Home() {
               onCancel={() => setShowCreateForm(false)}
               isLoading={isCreating}
               allNotes={allNotes}
-              folders={folders}
-              defaultFolderId={selectedFolderId || null}
+              categories={categories}
+              defaultCategoryId={selectedCategoryId || null}
             />
           ) : editingNote ? (
             <NoteForm
@@ -384,7 +325,7 @@ export default function Home() {
               initialData={editingNote}
               isLoading={isUpdating}
               allNotes={allNotes}
-              folders={folders}
+              categories={categories}
             />
           ) : selectedNote ? (
             <div className="bg-slate-800/90 backdrop-blur-sm rounded-xl shadow-2xl p-8 border border-slate-700">
@@ -445,16 +386,17 @@ export default function Home() {
               {/* Search and Filter */}
               <SearchAndFilter
                 onSearch={handleSearch}
-                onFilterType={handleFilterType}
+                onFilterCategory={handleFilterCategory}
                 onFilterTag={handleFilterTag}
                 searchQuery={searchFilters.query}
-                selectedType={searchFilters.type}
+                selectedCategory={searchFilters.category}
                 availableTags={availableTags}
                 selectedTag={searchFilters.tag}
+                categories={categories}
               />
               {/* Notes List (filtered by folder) */}
               <NotesList
-                notes={notesInSelectedFolder}
+                notes={notesInSelectedCategory}
                 allNotes={allNotes}
                 onSelectNote={handleSelectNote}
                 onEditNote={handleEditNote}
@@ -467,13 +409,12 @@ export default function Home() {
           )}
         </div>
       </div>
-      {/* Folder Create Modal */}
-      <FolderCreateModal
-        isOpen={showFolderModal}
-        onClose={() => { setShowFolderModal(false); setFolderModalParent(null) }}
-        onCreate={handleCreateFolder}
-        parentFolder={folderModalParent || undefined}
-        loading={isCreatingFolder}
+      {/* Category Create Modal */}
+      <CategoryCreateModal
+        isOpen={showCategoryModal}
+        onClose={() => setShowCategoryModal(false)}
+        onCreate={handleCreateCategory}
+        loading={isCreatingCategory}
       />
       {/* Delete Confirmation Modal */}
       <DeleteConfirmModal

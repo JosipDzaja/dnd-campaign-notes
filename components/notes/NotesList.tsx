@@ -3,6 +3,8 @@
 import { Note } from 'lib/database.types'
 import { formatDistanceToNow } from 'date-fns'
 import { renderContentWithLinks } from 'lib/noteLinks'
+import { ICON_MAP } from '@/lib/icons';
+import React from 'react';
 
 interface NotesListProps {
   notes: Note[]
@@ -13,17 +15,6 @@ interface NotesListProps {
   onCreateNote: () => void
   searchQuery?: string
   isFiltered?: boolean
-}
-
-const NOTE_TYPE_ICONS = {
-  general: '📝',
-  npc: '🧙‍♂️',
-  location: '🏰',
-  quest: '⚔️',
-  session: '🎲',
-  item: '⚡',
-  lore: '📚',
-  pantheon: '🛐'
 }
 
 export default function NotesList({ 
@@ -137,8 +128,10 @@ export default function NotesList({
               <div className="flex items-start justify-between">
                 <div className="flex-1 cursor-pointer" onClick={() => onSelectNote(note)}>
                   <div className="flex items-center space-x-3 mb-2">
-                    <span className="text-2xl">
-                      {NOTE_TYPE_ICONS[note.note_type] || '📝'}
+                    <span className="inline-flex items-center gap-2 text-2xl">
+                      {note.category && note.category.icon && ICON_MAP[note.category.icon]
+                        ? React.createElement(ICON_MAP[note.category.icon])
+                        : '📘'}
                     </span>
                     <h3 className="font-semibold text-white text-lg truncate">
                       {searchQuery ? highlightText(note.title, searchQuery) : note.title}

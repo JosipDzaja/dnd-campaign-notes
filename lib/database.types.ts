@@ -4,12 +4,12 @@ export interface Note {
   id: string
   title: string
   content: string | null
-  note_type: 'general' | 'npc' | 'location' | 'quest' | 'session' | 'item' | 'lore' | 'pantheon'
   tags: string[] | null
   created_by: string
   created_at: string
   updated_at: string
-  folder_id: string | null
+  category_id: string | null
+  category?: NoteCategory | null
 }
 
 export interface NotePermission {
@@ -39,13 +39,17 @@ export interface NoteImage {
   uploaded_by: string | null
 }
 
-export interface NoteFolder {
+export interface NoteCategory {
   id: string
   name: string
+  description?: string | null
   icon?: string | null
-  parent_id?: string | null
-  created_by: string
-  created_at: string
+  color?: string | null
+  category_type?: string | null
+  sort_order?: number | null
+  is_active?: boolean | null
+  created_at?: string | null
+  updated_at?: string | null
 }
 
 // Extended types for queries with references and images
@@ -55,7 +59,7 @@ export interface NoteWithReferences extends Note {
     target_note: {
       id: string
       title: string
-      note_type: Note['note_type']
+      category: NoteCategory | null
     }
   }[]
   references_to?: {
@@ -63,7 +67,7 @@ export interface NoteWithReferences extends Note {
     source_note: {
       id: string
       title: string
-      note_type: Note['note_type']
+      category: NoteCategory | null
     }
   }[]
 }
@@ -78,7 +82,7 @@ export interface NoteWithAll extends Note {
     target_note: {
       id: string
       title: string
-      note_type: Note['note_type']
+      category: NoteCategory | null
     }
   }[]
   references_to?: {
@@ -86,7 +90,7 @@ export interface NoteWithAll extends Note {
     source_note: {
       id: string
       title: string
-      note_type: Note['note_type']
+      category: NoteCategory | null
     }
   }[]
   images?: NoteImage[]

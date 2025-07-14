@@ -12,17 +12,6 @@ interface ReferenceModalProps {
   onClose: () => void
 }
 
-const NOTE_TYPE_ICONS = {
-  general: '📝',
-  npc: '🧙‍♂️',
-  location: '🏰',
-  quest: '⚔️',
-  session: '🎲',
-  item: '⚡',
-  lore: '📚',
-  pantheon: '🛐'
-}
-
 export default function ReferenceModal({
   isOpen,
   currentNoteId,
@@ -30,7 +19,7 @@ export default function ReferenceModal({
   onAddReference,
   onClose
 }: ReferenceModalProps) {
-  const [availableNotes, setAvailableNotes] = useState<Pick<Note, 'id' | 'title' | 'note_type'>[]>([])
+  const [availableNotes, setAvailableNotes] = useState<Pick<Note, 'id' | 'title' | 'category'>[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -117,14 +106,17 @@ export default function ReferenceModal({
               >
                 <div className="flex items-center space-x-3">
                   <span className="text-2xl">
-                    {NOTE_TYPE_ICONS[note.note_type]}
+                    {note.category?.icon ?? '📘'}
                   </span>
                   <div className="flex-1">
                     <h4 className="font-medium text-white group-hover:text-blue-400 transition-colors">
                       {note.title}
                     </h4>
                     <p className="text-sm text-slate-400 capitalize">
-                      {note.note_type}
+                      <span className="inline-flex items-center gap-1">
+                        <span>{note.category?.icon ?? '📘'}</span>
+                        <span>{note.category?.name ?? 'General'}</span>
+                      </span>
                     </p>
                   </div>
                   <svg className="w-5 h-5 text-slate-400 group-hover:text-blue-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">

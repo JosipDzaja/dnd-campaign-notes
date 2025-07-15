@@ -2,7 +2,7 @@
 
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import { User } from '@supabase/supabase-js'
 import { supabase } from 'lib/supabase'
 import { Note } from 'lib/database.types'
@@ -27,6 +27,8 @@ import { NoteImage } from 'lib/database.types'
 import CategorySidebar from 'components/notes/CategorySidebar'
 import { NoteCategory } from 'lib/database.types'
 import CategoryCreateModal from 'components/notes/CategoryCreateModal'
+import { ICON_MAP } from 'lib/icons';
+import React from 'react';
 
 export default function Home() {
   const [user, setUser] = useState<User | null>(null)
@@ -45,6 +47,10 @@ export default function Home() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | undefined>(undefined)
   const [showCategoryModal, setShowCategoryModal] = useState(false)
   const [isCreatingCategory, setIsCreatingCategory] = useState(false)
+  const [profileOpen, setProfileOpen] = useState(false);
+  // Replace profileButtonRef with profileRef for the header div
+  const profileRef = useRef<HTMLDivElement>(null);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   // Search and filter state
   const [searchFilters, setSearchFilters] = useState({
@@ -83,6 +89,7 @@ export default function Home() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
+        console.log('onAuthStateChange fired:', _event, session);
         setUser(session?.user ?? null)
       }
     )
@@ -104,6 +111,16 @@ export default function Home() {
       setSelectedNoteImages([])
     }
   }, [selectedNote])
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        setProfileOpen(false);
+      }
+    }
+    if (profileOpen) document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [profileOpen]);
 
   const loadNotes = async () => {
     try {
@@ -235,7 +252,23 @@ export default function Home() {
   }
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
+    try {
+      const sessionBefore = await supabase.auth.getSession();
+      console.log('Before signOut, session:', sessionBefore);
+      const { error } = await supabase.auth.signOut();
+      const sessionAfter = await supabase.auth.getSession();
+      console.log('After signOut, session:', sessionAfter);
+      if (error) {
+        alert('Logout failed: ' + error.message);
+        console.error('Supabase signOut error:', error);
+      } else {
+        console.log('User logged out successfully');
+        window.location.reload();
+      }
+    } catch (err) {
+      alert('Logout failed: ' + (err instanceof Error ? err.message : String(err)));
+      console.error('Logout exception:', err);
+    }
   }
 
   // CategorySidebar handlers
@@ -267,37 +300,67 @@ export default function Home() {
   }
 
   if (!user) {
-    return (
-      <div className="min-h-screen bg-gray-100 py-8">
-        <LoginForm />
-      </div>
-    )
+    return <LoginForm />
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       {/* Header */}
-      <div className="bg-slate-800/90 backdrop-blur-sm border-b border-slate-700 shadow-xl">
-        <div className="max-w-6xl mx-auto px-4 py-6">
-          <div className="flex justify-between items-center">
+      <div className="bg-slate-800/90 border-b border-slate-700 shadow-xl z-[9998]">
+        <div className="max-w-6xl mx-auto px-4 py-6 z-0">
+          <div className="flex justify-between items-center relative z-[9998]">
             <h1 className="text-3xl font-bold text-white">🎲 Arcane Archives</h1>
-            <div className="flex items-center space-x-4">
-              <span className="text-slate-300">Welcome, {user.email}</span>
+            <div className="flex items-center space-x-4 relative" ref={profileRef}>
+              {/* Mobile: single menu button */}
               <button
-                onClick={handleLogout}
-                className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium transition-all duration-200 shadow-lg hover:shadow-xl"
+                className="block md:hidden text-2xl text-slate-300 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-full transition-colors"
+                onClick={() => setMobileSidebarOpen(true)}
+                aria-label="Open menu"
               >
-                Logout
+                {ICON_MAP.menu && <ICON_MAP.menu />}
               </button>
+              {/* Desktop: profile button */}
+              <button
+                className="hidden md:flex text-2xl text-slate-300 items-center hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-full transition-colors"
+                onClick={() => setProfileOpen((o) => !o)}
+                aria-label="Open profile menu"
+              >
+                {ICON_MAP.user && <ICON_MAP.user />}
+              </button>
+              {profileOpen && (
+                <div className="absolute right-0 top-full mt-2 w-64 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-[9999] animate-fade-in p-4 flex flex-col items-center min-w-[220px]">
+                  <div className="w-full flex flex-col items-center mb-4">
+                    <div className="bg-slate-700 text-slate-300 rounded-full p-3 mb-2 flex items-center justify-center">
+                      {ICON_MAP.user && React.createElement(ICON_MAP.user as any, { size: 32 })}
+                    </div>
+                    <span className="text-base font-semibold text-white mb-1">Profile</span>
+                    <span className="text-xs text-slate-400 mb-1">{user.email}</span>
+                    {user.id && (
+                      <span className="text-xs text-slate-500 break-all">ID: {user.id}</span>
+                    )}
+                  </div>
+                  <div className="w-full border-t border-slate-700 my-2" />
+                  <button
+                    onClick={async () => { 
+                      console.log('Logout button clicked');
+                      await handleLogout(); 
+                      setProfileOpen(false); 
+                    }}
+                    className="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-red-400"
+                  >
+                    Logout
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
 
       {/* Main Content with Sidebar */}
-      <div className="max-w-6xl mx-auto px-4 py-8 flex gap-6">
+      <div className="max-w-6xl mx-auto px-4 py-8 flex gap-6 z-0">
         {/* Category Sidebar */}
-        <div className="hidden md:block w-72 flex-shrink-0">
+        <div className="hidden md:block w-72 flex-shrink-0 z-0">
           <CategorySidebar
             categories={categories}
             notes={allNotes}
@@ -307,8 +370,57 @@ export default function Home() {
             headerAction={() => setShowCategoryModal(true)}
           />
         </div>
+        {/* Mobile Slide-over Sidebar (now includes profile) */}
+        {mobileSidebarOpen && (
+          <>
+            <div
+              className="fixed inset-0 bg-black/50 z-[9998] transition-opacity md:hidden"
+              onClick={() => setMobileSidebarOpen(false)}
+              aria-label="Close menu overlay"
+            />
+            <aside className="fixed inset-y-0 left-0 w-80 max-w-full bg-slate-800/90 border-r border-slate-700 z-[9999] shadow-2xl flex flex-col md:hidden animate-slide-in">
+              <div className="flex flex-col items-center p-6 border-b border-slate-700">
+                <div className="bg-slate-700 text-slate-300 rounded-full p-3 mb-2 flex items-center justify-center">
+                  {ICON_MAP.user && React.createElement(ICON_MAP.user as any, { size: 40 })}
+                </div>
+                <span className="text-base font-semibold text-white mb-1">Profile</span>
+                <span className="text-xs text-slate-400 mb-1">{user.email}</span>
+                {user.id && (
+                  <span className="text-xs text-slate-500 break-all mb-2">ID: {user.id}</span>
+                )}
+                <button
+                  onClick={async () => { 
+                    console.log('Logout button clicked');
+                    await handleLogout(); 
+                    setMobileSidebarOpen(false); 
+                  }}
+                  className="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-red-400 mt-2"
+                >
+                  Logout
+                </button>
+                <button
+                  className="absolute top-4 right-4 text-slate-400 hover:text-blue-400 rounded-full hover:bg-slate-700/50 transition-colors p-2"
+                  onClick={() => setMobileSidebarOpen(false)}
+                  aria-label="Close menu"
+                >
+                  {ICON_MAP.x && <ICON_MAP.x />}
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto">
+                <CategorySidebar
+                  categories={categories}
+                  notes={allNotes}
+                  selectedCategoryId={selectedCategoryId}
+                  onSelectCategory={(id) => { setMobileSidebarOpen(false); handleSelectCategory(id); }}
+                  onSelectNote={handleSelectNote}
+                  headerAction={() => { setShowCategoryModal(true); setMobileSidebarOpen(false); }}
+                />
+              </div>
+            </aside>
+          </>
+        )}
         {/* Main Area */}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 z-0">
           {showCreateForm ? (
             <NoteForm
               onSubmit={handleCreateNote}

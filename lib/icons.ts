@@ -33,6 +33,7 @@ import {
   FiUser,
   FiUsers as FiUsersAlt,
   FiBookOpen,
+  FiMenu,
 } from 'react-icons/fi';
 
 export const ICON_MAP: Record<string, React.ComponentType> = {
@@ -71,6 +72,7 @@ export const ICON_MAP: Record<string, React.ComponentType> = {
   user: FiUser,
   usersAlt: FiUsersAlt,
   fallback: FiFolder,
+  menu: FiMenu,
 };
 
 // For icon picker UI
@@ -109,4 +111,5 @@ export const ICON_OPTIONS = [
   { key: 'trash', label: 'Trash', icon: FiTrash },
   { key: 'user', label: 'User', icon: FiUser },
   { key: 'usersAlt', label: 'Users Alt', icon: FiUsersAlt },
+  { key: 'menu', label: 'Menu', icon: FiMenu },
 ]; 
